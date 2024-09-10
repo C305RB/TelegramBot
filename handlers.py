@@ -1,3 +1,14 @@
+import bot
+import config
+
+def generate_main_keyboard():
+    kb = [[
+        types.KeyboardButton(text = "Начать игру"),
+        types.KeyboardButton(text = "Посмотреть результаты всех пользователей")
+    ]]
+    keyboard = types.ReplyKeyboardMarkup(keyboard = kb, resize_keyboard = True)
+    return keyboard
+
 def generate_options_keyboard(answer_options, right_answer):
     builder = InlineKeyboardBuilder()
 
@@ -74,7 +85,7 @@ async def get_question(message, user_id):
     opts = quiz_data[current_question_index]['options']
     kb = generate_options_keyboard(opts, opts[correct_index])
     await message.answer(f"{quiz_data[current_question_index]['question']}", reply_markup=kb)
-
+    await message.delete()
 
 async def new_quiz(message):
     user_id = message.from_user.id
@@ -96,11 +107,11 @@ async def get_quiz_index(user_id):
                 return 0
 
 
-async def update_quiz_index(user_id, index):
+async def update_quiz_index(user_id, full_name ,index = 0, questions_true = 0, last_result = 0):
     # Создаем соединение с базой данных (если она не существует, она будет создана)
     async with aiosqlite.connect(DB_NAME) as db:
         # Вставляем новую запись или заменяем ее, если с данным user_id уже существует
-        await db.execute('INSERT OR REPLACE INTO quiz_state (user_id, question_index) VALUES (?, ?)', (user_id, index))
+        await db.execute('INSERT OR REPLACE INTO quiz_state (user_id, full_name, question_index, questions_true, last_result) VALUES (?, ?, ?, ?, ?)', (user_id, full_name, index, questions_true, last_result))
         # Сохраняем изменения
         await db.commit()
 
@@ -109,6 +120,5 @@ async def update_quiz_index(user_id, index):
 @dp.message(F.text=="Начать игру")
 @dp.message(Command("quiz"))
 async def cmd_quiz(message: types.Message):
-
     await message.answer(f"Давайте начнем квиз!")
     await new_quiz(message)
